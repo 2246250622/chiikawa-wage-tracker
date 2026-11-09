@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Chiikawa 即時工資增長器 - 激勵工作版
 // @namespace    https://greasyfork.org/
-// @version      1.5
+// @version      1.6
 // @description  開著瀏覽器就有 Chiikawa 陪你計算每月工資進度（按日期自動計算），刷新不重置，設定永久保存。
 // @author       Grok for Jason's friend
 // @match        *://*/*
@@ -14,7 +14,9 @@
 (function() {
     'use strict';
 
-    const CHIIKAWA_IMG = 'https://crystalpng.com/wp-content/uploads/2025/05/chiikawa-png.png';
+    const DEFAULT_IMG = 'https://crystalpng.com/wp-content/uploads/2025/05/chiikawa-png.png';
+    const customImg = GM_getValue('customImg', null);
+    const currentImg = customImg || DEFAULT_IMG;
 
     const DEFAULTS = {
         monthlySalary: 20000,
@@ -66,13 +68,13 @@
     container.id = 'chiikawa-wage-widget';
     container.innerHTML = `
         <div class="chiikawa-header">
-            <img src="${CHIIKAWA_IMG}" class="chiikawa-img" alt="Chiikawa">
+            <img src="${currentImg}" class="chiikawa-img" alt="Chiikawa">
             <div class="title">ちいかわ工資計</div>
             <button class="min-btn" title="縮小">−</button>
             <button class="set-btn" title="設定">⚙</button>
         </div>
         <div class="chiikawa-body">
-            <div class="earned-label">本週期已賺取</div>
+            <div class="earned-label">本月已賺取</div>
             <div class="earned-amount">0.000000</div>
             <div class="rate-info">每秒：0.000000 ${settings.currency}</div>
             <div class="progress-info">月份進度計算中...</div>
@@ -82,6 +84,10 @@
             <label>月薪：<input type="number" id="salary-input" value="${settings.monthlySalary}" step="100"></label>
             <label>發薪日（幾號）：<input type="number" id="payday-input" value="${settings.payday}" min="1" max="31"></label>
             <label>貨幣：<input type="text" id="currency-input" value="${settings.currency}" maxlength="5"></label>
+            <label style="margin-top:10px;">自訂公仔（上傳圖片）：
+                <input type="file" id="img-upload" accept="image/*" style="width:100%;">
+            </label>
+            <button id="reset-img-btn" style="background:#aaa;margin-top:4px;">恢復預設公仔</button>
             <div style="font-size:11px;color:#888;margin:4px 0;">設定會永久保存，刷新不會消失</div>
             <button id="save-btn">儲存</button>
         </div>
@@ -276,6 +282,29 @@
         saveSettings();
         settingsPanel.style.display = 'none';
         alert('設定已儲存！（會永久保留）');
+    };
+
+    const imgUpload = document.getElementById('img-upload');
+    const resetImgBtn = document.getElementById('reset-img-btn');
+    const imgEl = container.querySelector('.chiikawa-img');
+
+    imgUpload.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const dataUrl = ev.target.result;
+            GM_setValue('customImg', dataUrl);
+            imgEl.src = dataUrl;
+            alert('公仔已更換！（永久保存）');
+        };
+        reader.readAsDataURL(file);
+    };
+
+    resetImgBtn.onclick = () => {
+        GM_setValue('customImg', null);
+        imgEl.src = DEFAULT_IMG;
+        alert('已恢復預設 Chiikawa');
     };
 
     let isDragging = false, offsetX, offsetY;
